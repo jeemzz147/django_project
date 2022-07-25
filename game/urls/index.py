@@ -2,7 +2,6 @@ import imp
 from socket import IP_DEFAULT_MULTICAST_LOOP
 from django.urls import path, include
 from game.views.index import index
-from game.views.settings.logout import logout
 
 
 urlpatterns = [
