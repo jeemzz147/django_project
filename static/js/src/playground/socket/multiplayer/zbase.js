@@ -137,7 +137,7 @@ class MultiPlayerSocket {
 
     send_blink(tx, ty) {
         let outer = this;
-        // console.log("send blink in js");
+        console.log("send blink in js");
         this.ws.send(JSON.stringify({
             'event': 'blink',
             'uuid': outer.uuid,
@@ -147,7 +147,7 @@ class MultiPlayerSocket {
     }
 
     receive_blink(uuid, tx, ty) {
-        // console.log("receive blink in js");
+        console.log("receive blink in js");
         let player = this.get_player(uuid);
         if (player) {
             player.blink(tx, ty);

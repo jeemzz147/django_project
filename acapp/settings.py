@@ -41,6 +41,8 @@ USER_AGENTS_CACHE = 'default'
 
 # Application definition
 
+
+
 INSTALLED_APPS = [
     'channels',
     'game.apps.GameConfig',
@@ -155,3 +157,5 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+ROOM_CAPACITY = 3
