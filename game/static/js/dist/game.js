@@ -126,11 +126,89 @@ let AC_GAME_ANIMATION = function(timestamp) {
 }
 
 requestAnimationFrame(AC_GAME_ANIMATION);
-class GameMap extends AcGameObject {
+class CharField {
+    constructor(playground) {
+        this.playground = playground;
+        this.$history = $(`<div class="ac-game-chat-field-history">历史记录</div>`);
+        this.$input = $(`<input type="text" class="ac-game-chat-field-input">`);
+        
+        this.$history.hide();
+        this.$input.hide();
+        this.func_id = null;
+
+        this.playground.$playground.append(this.$history);
+        this.playground.$playground.append(this.$input);
+
+        this.start();
+
+    }
+
+
+    start() {
+        this.add_listening_events();
+    }
+
+
+    add_listening_events() {
+        let outer = this;
+        this.$input.keydown(function (e) {
+            if (e.which === 27) { // esc
+                outer.hide_input();
+                return false;
+            } else if (e.which === 13) {
+                let username = outer.playground.root.settings.username;
+                let text = outer.$input.val();
+                if (text) {
+                    outer.$input.val("");
+                    outer.add_message(username, text);
+                    outer.playground.mps.send_message(username, text);
+                }
+                return false;
+            }
+        });
+    }
+
+    render_message(message) {
+        return $(`<div>${message}</div>`);
+    }
+
+    add_message(username, text) {
+        this.show_history();
+        let message = `[${username}]${text}`;
+        this.$history.append(this.render_message(message));
+        this.$history.scrollTop(this.$history[0].scrollHeight);
+    }
+
+
+    show_history() {
+        let outer = this;
+        this.$history.fadeIn();
+
+        if (this.func_id) clearTimeout(this.func_id);
+
+        this.func_id = setTimeout(function () {
+            outer.$history.fadeOut();
+            outer.func_id = null;
+        }, 6000);
+    }
+
+    show_input() {
+        this.show_history();
+
+        this.$input.show();
+        this.$input.focus();
+    }
+
+    hide_input() {
+        // console.log("hide input!!!");
+        this.$input.hide();
+        this.playground.game_map.$canvas.focus();
+    }
+}class GameMap extends AcGameObject {
     constructor(playground) {
         super();
         this.playground = playground;
-        this.$canvas = $(`<canvas></canvas>`);
+        this.$canvas = $(`<canvas tabindex=0></canvas>`);
         this.ctx = this.$canvas[0].getContext('2d');
         this.ctx.canvas.width = this.playground.width;
         this.ctx.canvas.height = this.playground.height;
@@ -139,6 +217,7 @@ class GameMap extends AcGameObject {
 
 
     start() {
+        this.$canvas.focus();
     }
 
     resize() {
@@ -306,7 +385,7 @@ class Player extends AcGameObject {
         });
         this.playground.game_map.$canvas.mousedown(function (e) {
             if (outer.playground.state !== "fighting")
-                return false;
+                return true;
 
             const rect = outer.ctx.canvas.getBoundingClientRect();
             if (e.which === 3) {
@@ -343,8 +422,21 @@ class Player extends AcGameObject {
             }
         });
 
-        $(window).keydown(function (e) { // 68:D   81:Q
-            // console.log(e.which);
+        this.playground.game_map.$canvas.keydown(function (e) { // 68:D   81:Q enter:13
+            console.log(e.which);
+
+            if (e.which === 13) {
+                if (outer.playground.mode === "multi mode") { // enter打开聊天框
+                    outer.playground.chat_field.show_input();
+                    return false;
+                }
+            } else if (e.which === 27) { // esc关闭聊天框
+                // console.log("press esc!!! ");
+                if (outer.playground.mode === "multi mode") { // enter打开聊天框
+                    outer.playground.chat_field.hide_input();
+                }
+            }
+
             if (outer.playground.state !== "fighting")
                 return true;
 
@@ -704,6 +796,8 @@ class MultiPlayerSocket {
                 outer.receive_attack(uuid, data.attackee_uuid, data.x, data.y, data.angle, data.damage, data.ball_uuid);
             } else if (event === "blink") {
                 outer.receive_blink(uuid, data.tx, data.ty);
+            } else if (event === "message") {
+                outer.receive_message(uuid, data.username, data.text);
             }
         };
     }
@@ -811,7 +905,7 @@ class MultiPlayerSocket {
 
     send_blink(tx, ty) {
         let outer = this;
-        console.log("send blink in js");
+        // console.log("send blink in js");
         this.ws.send(JSON.stringify({
             'event': 'blink',
             'uuid': outer.uuid,
@@ -821,11 +915,26 @@ class MultiPlayerSocket {
     }
 
     receive_blink(uuid, tx, ty) {
-        console.log("receive blink in js");
+        // console.log("receive blink in js");
         let player = this.get_player(uuid);
         if (player) {
             player.blink(tx, ty);
         }
+    }
+
+    send_message(username, text) {
+        let outer = this;
+        // console.log("send message in js");
+        this.ws.send(JSON.stringify({
+            'event': "message",
+            'uuid': outer.uuid,
+            'username': username,
+            'text': text,
+        }));
+    }
+
+    receive_message(uuid, username, text) {
+        this.playground.chat_field.add_message(username, text);
     }
 }class AcGamePlayground {
     constructor(root) {
@@ -888,6 +997,7 @@ class MultiPlayerSocket {
                 this.players.push(new Player(this, this.width / 2 / this.scale, 0.5, 0.05, this.get_random_color(), 0.15, "robot"));
             }
         } else if (mode === "multi mode") {
+            this.chat_field = new CharField(this);
             this.mps = new MultiPlayerSocket(this);
             this.mps.uuid = this.players[0].uuid;
 
