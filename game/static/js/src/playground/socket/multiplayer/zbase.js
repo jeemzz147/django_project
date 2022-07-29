@@ -116,7 +116,7 @@ class MultiPlayerSocket {
 
     send_attack(attackee_uuid, x, y, angle, damage, ball_uuid) {
         let outer = this;
-        console.log(outer.uuid, "attack ", attackee_uuid, "in js !!!");
+        // console.log(outer.uuid, "attack ", attackee_uuid, "in js !!!");
         this.ws.send(JSON.stringify({
             'event': "attack",
             'uuid': outer.uuid,

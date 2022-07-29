@@ -70,7 +70,7 @@ class FireBall extends AcGameObject {
         
         
         if (this.playground.mode === "multi mode") {
-            console.log("ball ", this.uuid, "is attack", player.uuid, "in js!!!");
+            //console.log("ball ", this.uuid, "is attack", player.uuid, "in js!!!");
             this.playground.mps.send_attack(player.uuid, player.x, player.y, angle, this.damage, this.uuid);
         }
 
